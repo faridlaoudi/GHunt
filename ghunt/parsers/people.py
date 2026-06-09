@@ -131,7 +131,8 @@ class Person(Parser):
             for email_data in person_data["email"]:
                 person_email = PersonEmail()
                 person_email._scrape(email_data)
-                self.emails[email_data["metadata"]["container"]] = person_email
+                container_key = email_data["metadata"].get("container", "PROFILE")
+                self.emails[container_key] = person_email
 
         if person_data.get("name"):
             for name_data in person_data["name"]:
@@ -143,26 +144,31 @@ class Person(Parser):
             for profile_data in person_data["readOnlyProfileInfo"]:
                 person_profile = PersonProfileInfo()
                 person_profile._scrape(profile_data)
-                self.profileInfos[profile_data["metadata"]["container"]] = person_profile
+                container_key = profile_data["metadata"].get("container", "PROFILE")
+                self.profileInfos[container_key] = person_profile
 
                 if person_data.get("photo"):
                     for photo_data in person_data["photo"]:
                         person_photo = PersonPhoto()
                         await person_photo._scrape(as_client, photo_data, "profile_photo")
-                        self.profilePhotos[profile_data["metadata"]["container"]] = person_photo
+                        container_key = profile_data["metadata"].get("container", "PROFILE")
+                        self.profilePhotos[container_key] = person_photo
 
         if (source_ids := person_data.get("metadata", {}).get("identityInfo", {}).get("sourceIds")):
             for source_ids_data in source_ids:
                 person_source_ids = PersonSourceIds()
                 person_source_ids._scrape(source_ids_data)
-                self.sourceIds[source_ids_data["container"]] = person_source_ids
+                # Safely get the metadata dict first, defaulting to an empty dict if missing
+                metadata_dict = source_ids_data.get("metadata", {})
+                container_key = metadata_dict.get("container", "PROFILE")
+                self.sourceIds[container_key] = person_source_ids
 
         if person_data.get("coverPhoto"):
             for cover_photo_data in person_data["coverPhoto"]:
                 person_cover_photo = PersonPhoto()
                 await person_cover_photo._scrape(as_client, cover_photo_data, "cover_photo")
-                container = cover_photo_data.get("metadata", {}).get("container", "unknown")
-                self.coverPhotos[container] = person_cover_photo
+                container_key = cover_photo_data["metadata"].get("container", "PROFILE")
+                self.coverPhotos[container_key] = person_cover_photo
 
         if (apps_data := person_data.get("inAppReachability")):
             containers_names = set()
